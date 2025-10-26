@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Assistente de Sustentação IA</title>
+  <link rel="icon" type="image/png" href="/web/favicon.png">
   <style>
     /* ======== RESET & BASE ======== */
     * {
@@ -138,7 +139,7 @@
   <!-- ======== CABEÇALHO ======== -->
   <header>
     <!-- Espaço para o logo -->
-    <img src="logo-placeholder.png" alt="Logo da Empresa" id="logo">
+    <img src="/web/logo-placeholder.png" alt="Logo da Empresa" id="logo">
     <h1>Assistente de Sustentação IA</h1>
   </header>
 
@@ -146,10 +147,11 @@
   <main>
     <div class="chat-box" id="chatBox">
       <div class="message bot">
-        👋 Olá! Eu sou o assistente de sustentação técnica.<br><br>
+        👋 <strong>Olá!</strong> Eu sou o assistente de sustentação técnica.<br><br>
         Faça uma pergunta — por exemplo:<br><br>
         <em>“Sou gestor e quero um resumo da saúde técnica dos sistemas.”</em><br>
-        <em>“Sou analista de sustentação e encontrei falhas na transmissão.”</em>
+        <em>“Sou analista de sustentação e quero que mostre falhas na transmissão viagem.”</em><br>
+        <em>“Sou um dev e quero que mostre falhas no vida nova.”</em>
       </div>
     </div>
 
@@ -168,12 +170,17 @@
     const inputPergunta = document.getElementById("inputPergunta");
     const loading = document.getElementById("loading");
 
-    // Detecta se está rodando localmente ou no Cloud Run
+    // ==============================================================
+    // 🌐 Detecta ambiente: local ou Cloud Run
+    // ==============================================================
     const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
     const API_URL = isLocal
       ? "http://127.0.0.1:8000"
-      : "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app"; // 🌐 URL do Cloud Run
+      : "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app"; // URL pública do backend no Cloud Run
 
+    // ==============================================================
+    // 💬 Evento de envio de mensagem
+    // ==============================================================
     chatForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const pergunta = inputPergunta.value.trim();
@@ -200,12 +207,15 @@
         addMessage(data.resposta || "⚠️ Não foi possível obter resposta da IA.", "bot");
 
       } catch (err) {
-        addMessage("❌ Erro de conexão com o servidor. Verifique se o serviço está online.", "bot");
+        addMessage("❌ Erro de conexão com o servidor. Verifique se o backend está online.", "bot");
       } finally {
         loading.style.display = "none";
       }
     });
 
+    // ==============================================================
+    // 📦 Função auxiliar para adicionar mensagens ao chat
+    // ==============================================================
     function addMessage(text, sender) {
       const msg = document.createElement("div");
       msg.classList.add("message", sender);
