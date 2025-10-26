@@ -23,15 +23,18 @@ app = FastAPI(
 )
 
 # ==============================================================
-# 🌐 CORS (para execução local e compatibilidade futura)
+# 🌐 CORS - Liberação para execução local, Cloud Run e bucket público (POC)
 # ==============================================================
 origins = [
     "http://127.0.0.1:5500",  # execução local via Live Server
     "http://localhost:5500",
     "http://127.0.0.1:8000",
     "http://localhost:8080",
-    "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app",  # domínio Cloud Run
+    "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app",  # backend Cloud Run
+    "https://storage.googleapis.com",                         # domínio genérico do bucket
+    "https://storage.googleapis.com/chat-log-poc",             # bucket do front (ajuste conforme seu nome)
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
