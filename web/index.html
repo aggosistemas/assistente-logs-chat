@@ -138,7 +138,7 @@
   <!-- ======== CABEÇALHO ======== -->
   <header>
     <!-- Espaço para o logo -->
-    <img src="/web/logo-placeholder.png" alt="Logo da Empresa" id="logo">
+    <img src="logo-placeholder.png" alt="Logo da Empresa" id="logo">
     <h1>Assistente de Sustentação IA</h1>
   </header>
 
@@ -149,8 +149,7 @@
         👋 Olá! Eu sou o assistente de sustentação técnica.<br><br>
         Faça uma pergunta — por exemplo:<br><br>
         <em>“Sou gestor e quero um resumo da saúde técnica dos sistemas.”</em><br>
-        <em>“Sou analista de sustentação e quero que mostre falhas na transmissão viagem.”</em><br>
-        <em>“Sou um dev e quero que mostre falhas no vida nova.”</em>
+        <em>“Sou analista de sustentação e encontrei falhas na transmissão.”</em>
       </div>
     </div>
 
@@ -169,6 +168,12 @@
     const inputPergunta = document.getElementById("inputPergunta");
     const loading = document.getElementById("loading");
 
+    // Detecta se está rodando localmente ou no Cloud Run
+    const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+    const API_URL = isLocal
+      ? "http://127.0.0.1:8000"
+      : "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app"; // 🌐 URL do Cloud Run
+
     chatForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const pergunta = inputPergunta.value.trim();
@@ -179,14 +184,14 @@
       loading.style.display = "block";
 
       try {
-        const response = await fetch("https://assistente-logs-chat-p62nlxrygq-uc.a.run.app/chat", {
+        const response = await fetch(`${API_URL}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pergunta })
         });
 
         if (!response.ok) {
-          addMessage("❌ Erro: servidor retornou status " + response.status, "bot");
+          addMessage(`❌ Erro: servidor retornou status ${response.status}`, "bot");
           loading.style.display = "none";
           return;
         }
@@ -195,7 +200,7 @@
         addMessage(data.resposta || "⚠️ Não foi possível obter resposta da IA.", "bot");
 
       } catch (err) {
-        addMessage("❌ Erro de conexão com o servidor. Verifique se o backend está ativo.", "bot");
+        addMessage("❌ Erro de conexão com o servidor. Verifique se o serviço está online.", "bot");
       } finally {
         loading.style.display = "none";
       }
