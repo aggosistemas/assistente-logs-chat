@@ -7,16 +7,10 @@ on:
         description: "Tag da imagem (ex: latest ou v1.0.0)"
         required: true
         default: "latest"
-        type: string
-
-env:
-  REGION: us-central1
-  SERVICE_NAME: "assistente-logs-chat"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
       # ==============================================================
@@ -39,17 +33,11 @@ jobs:
       # ==============================================================
       - name: Build e Push da imagem Docker
         run: |
-          IMAGE_TAG="${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}"
-          echo "📦 Construindo imagem: $IMAGE_TAG"
-          
-          # Build da imagem
-          docker build -t $IMAGE_TAG .
-          
-          # Push para Docker Hub
-          echo "🚀 Enviando imagem para Docker Hub..."
-          docker push $IMAGE_TAG
-          
-          echo "✅ Imagem enviada com sucesso para Docker Hub: $IMAGE_TAG"
+          IMAGE="docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/assistente-logs-chat:${{ github.event.inputs.tag }}"
+          echo "📦 Construindo imagem: $IMAGE"
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "✅ Imagem enviada com sucesso para Docker Hub."
 
       # ==============================================================
       # 🔐 Autenticação com o Google Cloud
@@ -72,25 +60,24 @@ jobs:
       # ==============================================================
       - name: Deploy no Cloud Run
         run: |
-          IMAGE_TAG="${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}"
+          SERVICE_NAME="assistente-logs-chat"
+          REGION="us-central1"
+          IMAGE="docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/assistente-logs-chat:${{ github.event.inputs.tag }}"
 
           echo "🚀 Iniciando deploy no Cloud Run..."
-          echo "📝 Serviço: ${{ env.SERVICE_NAME }}"
-          echo "📍 Região: ${{ env.REGION }}"
-          echo "🐳 Imagem: $IMAGE_TAG"
+          echo "📝 Serviço: $SERVICE_NAME"
+          echo "📍 Região: $REGION"
+          echo "🐳 Imagem: $IMAGE"
 
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image $IMAGE_TAG \
-            --region ${{ env.REGION }} \
+          gcloud run deploy $SERVICE_NAME \
+            --image $IMAGE \
+            --region $REGION \
             --allow-unauthenticated \
             --platform managed \
             --port 8080 \
             --min-instances=0 \
             --max-instances=1 \
-            --cpu=1 \
-            --memory=512Mi \
-            --set-env-vars "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" \
-            --labels="github-repo=${{ github.repository }},environment=production,managed-by=github-actions"
+            --set-env-vars "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
 
           echo "✅ Deploy concluído com sucesso."
 
@@ -99,11 +86,10 @@ jobs:
       # ==============================================================
       - name: Mostrar URL do Cloud Run
         run: |
-          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region ${{ env.REGION }} \
+          URL=$(gcloud run services describe assistente-logs-chat \
+            --region us-central1 \
             --format='value(status.url)')
           echo "🌍 Serviço disponível em: $URL"
-          echo "::set-output name=service_url::$URL"
 
       # ==============================================================
       # 📤 Enviar logs (deploy) para Fluent Bit + Discord
@@ -115,30 +101,20 @@ jobs:
           FLUENT_BIT_AUTH_BA: ${{ secrets.FLUENT_BIT_AUTH_BA }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          REPO="${{ github.repository }}"
-          WORKFLOW="${{ github.workflow }}"
-          JOB="${{ github.job }}"
-          BRANCH="${{ github.ref_name }}"
-          SHA="${{ github.sha }}"
-          RUN_ID="${{ github.run_id }}"
+          REPO="${GITHUB_REPOSITORY}"
+          WORKFLOW="${GITHUB_WORKFLOW}"
+          JOB="${GITHUB_JOB}"
+          BRANCH="${GITHUB_REF_NAME}"
+          SHA="${GITHUB_SHA}"
+          RUN_ID="${GITHUB_RUN_ID}"
           STATUS="${{ job.status }}"
           TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-          TIPO_ERRO=$([ "$STATUS" = "failure" ] && echo "DEPLOY" || echo "INFO")
+          TIPO_ERRO=$( [ "$STATUS" = "failure" ] && echo "DEPLOY" || echo "INFO" )
           BASE="${REPO}|${WORKFLOW}|${JOB}|${STATUS}|${SHA:0:8}"
           STACK_HASH=$(printf "%s" "$BASE" | shasum -a 256 | awk '{print $1}')
 
           echo "📡 Enviando logs de deploy para Fluent Bit..."
-
-          # Obter URL do serviço se o deploy foi bem-sucedido
-          SERVICE_URL=""
-          if [ "$STATUS" = "success" ]; then
-            SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-              --region ${{ env.REGION }} \
-              --format='value(status.url)' 2>/dev/null || echo "")
-          fi
-
-          # Enviar logs para Fluent Bit
-          curl --fail --silent --location "$FLUENT_BIT_URL" \
+          curl --location "$FLUENT_BIT_URL" \
             --header 'Content-Type: application/json' \
             --header "Authorization: Basic $FLUENT_BIT_AUTH_BA" \
             --data "{
@@ -148,90 +124,37 @@ jobs:
               \"job\": \"${JOB}\",
               \"status\": \"${STATUS}\",
               \"branch\": \"${BRANCH}\",
-              \"autor\": \"${{ github.actor }}\",
+              \"autor\": \"${GITHUB_ACTOR}\",
               \"git_sha\": \"${SHA}\",
               \"run_id\": \"${RUN_ID}\",
               \"mensagem_curta\": \"Execução ${STATUS} em ${WORKFLOW}/${JOB}\",
               \"tipo_erro\": \"${TIPO_ERRO}\",
               \"stack_hash\": \"${STACK_HASH}\",
-              \"service_url\": \"${SERVICE_URL}\",
-              \"image_tag\": \"${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}\",
               \"timestamp\": \"${TS}\"
-            }" && echo "✅ Logs enviados com sucesso para Fluent Bit." || echo "❌ Falha ao enviar logs para Fluent Bit."
+            }"
+          echo "✅ Logs enviados com sucesso para Fluent Bit."
 
           echo "🔔 Enviando notificação para Discord..."
-          EMBED_COLOR=$([ "$STATUS" = "success" ] && echo "5763719" || echo "15548997")
+          EMBED_COLOR=$( [ "$STATUS" = "success" ] && echo "5763719" || echo "15548997" )
           COMMIT_URL="https://github.com/${REPO}/actions/runs/${RUN_ID}"
-          GIT_SHORT_SHA="${SHA:0:8}"
 
-          # Construir mensagem para Discord
-          DISCORD_TITLE=$([ "$STATUS" = "success" ] && echo "✅ Deploy Concluído - Assistente Sustentação" || echo "❌ Falha no Deploy - Assistente Sustentação")
-          
-          DISCORD_DATA="{
-            \"embeds\": [{
-              \"title\": \"${DISCORD_TITLE}\",
-              \"color\": ${EMBED_COLOR},
-              \"fields\": [
-                {\"name\": \"🧩 Projeto\", \"value\": \"${REPO}\", \"inline\": true},
-                {\"name\": \"🧱 Pipeline\", \"value\": \"${WORKFLOW}\", \"inline\": true},
-                {\"name\": \"💻 Commit\", \"value\": \"${GIT_SHORT_SHA}\", \"inline\": true},
-                {\"name\": \"🔧 Status\", \"value\": \"${STATUS}\", \"inline\": true},
-                {\"name\": \"🌿 Branch\", \"value\": \"${BRANCH}\", \"inline\": true},
-                {\"name\": \"👤 Iniciado por\", \"value\": \"${{ github.actor }}\", \"inline\": true},
-                {\"name\": \"🐳 Imagem\", \"value\": \"${{ github.event.inputs.tag }}\", \"inline\": true}"
-
-          # Adicionar URL do serviço se disponível
-          if [ -n "$SERVICE_URL" ]; then
-            DISCORD_DATA="${DISCORD_DATA},
-                {\"name\": \"🌐 URL do Serviço\", \"value\": \"[Acessar](${SERVICE_URL})\", \"inline\": false}"
-          fi
-
-          DISCORD_DATA="${DISCORD_DATA}
-              ],
-              \"footer\": {
-                \"text\": \"GitHub Actions - Assistente Sustentação • ${TS}\"
-              }
-            }]
-          }"
-
-          curl --fail --silent -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK_URL" \
-            --data "$DISCORD_DATA" && echo "✅ Notificação enviada para Discord com sucesso." || echo "❌ Falha ao enviar notificação para Discord."
-
-  # ==============================================================
-  # 🔍 Health Check (Opcional)
-  # ==============================================================
-  health-check:
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: success()
-    
-    steps:
-      - name: Configurar gcloud
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Health Check do serviço
-        run: |
-          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region ${{ env.REGION }} \
-            --format='value(status.url)')
-          
-          echo "🔍 Realizando health check em: $SERVICE_URL"
-          
-          # Tentativa de health check com retry
-          for i in {1..5}; do
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$SERVICE_URL" || echo "000")
-            if [ "$HTTP_STATUS" -eq 200 ]; then
-              echo "✅ Health check passou! Serviço respondendo com HTTP 200"
-              break
-            else
-              echo "⏳ Tentativa $i: Serviço retornou HTTP $HTTP_STATUS, aguardando..."
-              sleep 10
-            fi
-          done
-          
-          if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "⚠️  Aviso: Serviço pode não estar respondendo corretamente (HTTP: $HTTP_STATUS)"
-          fi
+          curl -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK_URL" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"$( [ "$STATUS" = "success" ] && echo "✅ Deploy - Assistente Sustentação (Cloud Run)" || echo "❌ Falha no Deploy - Assistente Sustentação")\",
+                \"color\": ${EMBED_COLOR},
+                \"fields\": [
+                  {\"name\": \"🧩 Projeto\", \"value\": \"${REPO}\", \"inline\": false},
+                  {\"name\": \"🧱 Pipeline\", \"value\": \"${WORKFLOW}\", \"inline\": true},
+                  {\"name\": \"💻 Commit\", \"value\": \"${SHA:0:8}\", \"inline\": true},
+                  {\"name\": \"🔧 Status\", \"value\": \"${STATUS}\", \"inline\": true},
+                  {\"name\": \"🌿 Branch\", \"value\": \"${BRANCH}\", \"inline\": true},
+                  {\"name\": \"👤 Iniciado por\", \"value\": \"${GITHUB_ACTOR}\", \"inline\": true},
+                  {\"name\": \"📋 Logs\", \"value\": \"[Acessar logs no GitHub](${COMMIT_URL})\", \"inline\": false}
+                ],
+                \"footer\": {
+                  \"text\": \"GitHub Actions - Assistente Sustentação • ${TS}\"
+                }
+              }]
+            }"
+          echo "✅ Notificação enviada para Discord com sucesso."
