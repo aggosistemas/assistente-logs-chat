@@ -163,14 +163,14 @@
   </main>
 
   <!-- ======== SCRIPT ======== -->
- <script>
+<script>
   const chatBox = document.getElementById("chatBox");
   const chatForm = document.getElementById("chatForm");
   const inputPergunta = document.getElementById("inputPergunta");
   const loading = document.getElementById("loading");
 
-  // 🌐 Detecta automaticamente o backend (mesmo domínio e porta)
-  const API_URL = window.location.origin;
+  // 🌍 URL fixa para o backend do Cloud Run (POC)
+  const API_URL = "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app";
 
   chatForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -212,6 +212,7 @@
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 </script>
+
 
 </body>
 </html>
