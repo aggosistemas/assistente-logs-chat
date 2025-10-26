@@ -1,0 +1,80 @@
+# ==============================================================
+# 🚫 .dockerignore - Assistente de Sustentação IA
+# --------------------------------------------------------------
+# Evita incluir arquivos desnecessários no build do Docker.
+# ==============================================================
+
+# =========================
+# 🔧 Ambientes e cache
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite
+*.log
+*.tmp
+*.pid
+*.swp
+*.bak
+*.orig
+*.DS_Store
+*.idea/
+*.vscode/
+.env
+.venv/
+.cache/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# =========================
+# 🚀 Controle de versão
+# =========================
+.git/
+.gitignore
+.gitattributes
+.github/
+*.patch
+
+# =========================
+# 🧪 Testes e documentação
+# =========================
+tests/
+test_*.py
+*.ipynb
+notebooks/
+docs/
+*.pdf
+*.md
+README.md
+
+# =========================
+# 🧰 Ferramentas e IDEs
+# =========================
+.vscode/
+.idea/
+*.code-workspace
+
+# =========================
+# 📦 Ambientes locais
+# =========================
+.env.local
+.env.development
+.env.production
+*.pem
+*.key
+*.crt
+*.json
+keys/
+secrets/
+chave*.json
+service-account*.json
+
+# =========================
+# 🗂️ Arquivos temporários e build intermediá

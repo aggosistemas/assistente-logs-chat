@@ -1,68 +1,59 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Assistente de Sustentação IA</title>
   <style>
-    /* ======== RESET & BASE ======== */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Inter", system-ui, sans-serif;
-    }
     body {
       background-color: #0f172a;
       color: #e2e8f0;
+      font-family: "Inter", system-ui, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
+      margin: 0;
       min-height: 100vh;
     }
 
-    /* ======== HEADER ======== */
     header {
       width: 100%;
       background-color: #1e293b;
+      padding: 1rem 2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1rem 2rem;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    header img {
-      height: 48px;
-      width: auto;
-    }
-    header h1 {
-      font-size: 1.25rem;
-      font-weight: 500;
-      color: #f1f5f9;
     }
 
-    /* ======== CHAT AREA ======== */
+    header img {
+      height: 48px;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      color: #f1f5f9;
+      margin: 0;
+    }
+
     main {
       flex: 1;
       width: 100%;
-      max-width: 900px;
+      max-width: 800px;
+      padding: 2rem 1rem;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 2rem 1rem;
     }
 
     .chat-box {
       width: 100%;
-      background: #1e293b;
+      background-color: #1e293b;
       border-radius: 12px;
       padding: 1.5rem;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-      overflow-y: auto;
       max-height: 70vh;
+      overflow-y: auto;
       margin-bottom: 1.5rem;
     }
 
@@ -70,47 +61,49 @@
       margin-bottom: 1rem;
       line-height: 1.5;
     }
+
     .message.user {
       text-align: right;
       color: #a5b4fc;
     }
+
     .message.bot {
-      text-align: left;
-      color: #f8fafc;
-      background: #334155;
+      background-color: #334155;
       padding: 0.75rem;
       border-radius: 10px;
+      color: #f8fafc;
       white-space: pre-line;
     }
 
-    /* ======== FORM ======== */
     form {
-      display: flex;
       width: 100%;
-      max-width: 900px;
-      background: #1e293b;
+      display: flex;
+      background-color: #1e293b;
       border-radius: 10px;
-      overflow: hidden;
       border: 1px solid #334155;
+      overflow: hidden;
     }
+
     input {
       flex: 1;
       padding: 1rem;
+      border: none;
       background: transparent;
       color: #f1f5f9;
-      border: none;
       outline: none;
       font-size: 1rem;
     }
+
     button {
       background: #6366f1;
-      border: none;
       color: white;
+      border: none;
       font-weight: 600;
       padding: 0 1.5rem;
       cursor: pointer;
-      transition: background 0.2s ease;
+      transition: background 0.2s;
     }
+
     button:hover {
       background: #4f46e5;
     }
@@ -122,27 +115,23 @@
       text-align: center;
     }
 
-    /* ======== RESPONSIVE ======== */
-    @media (max-width: 600px) {
-      header h1 {
-        font-size: 1rem;
-      }
-      header img {
-        height: 40px;
-      }
+    .error {
+      background-color: #7f1d1d;
+      color: #fee2e2;
+      border-radius: 8px;
+      padding: 0.75rem;
+      text-align: center;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
 
-  <!-- ======== CABEÇALHO ======== -->
   <header>
-    <!-- Espaço para o logo -->
-    <img src="/web/logo-placeholder.png" alt="Logo da Empresa" id="logo">
+    <img src="logo-placeholder.png" alt="Logo da Empresa">
     <h1>Assistente de Sustentação IA</h1>
   </header>
 
-  <!-- ======== CONTEÚDO ======== -->
   <main>
     <div class="chat-box" id="chatBox">
       <div class="message bot">
@@ -159,60 +148,63 @@
       <button type="submit">Enviar</button>
     </form>
 
-    <div class="loading" id="loading" style="display:none;">Gerando resposta...</div>
+    <div class="loading" id="loading" style="display:none;">⏳ Gerando resposta...</div>
+    <div class="error" id="errorBox" style="display:none;"></div>
   </main>
 
-  <!-- ======== SCRIPT ======== -->
-<script>
-  const chatBox = document.getElementById("chatBox");
-  const chatForm = document.getElementById("chatForm");
-  const inputPergunta = document.getElementById("inputPergunta");
-  const loading = document.getElementById("loading");
+  <script>
+    const chatBox = document.getElementById("chatBox");
+    const chatForm = document.getElementById("chatForm");
+    const inputPergunta = document.getElementById("inputPergunta");
+    const loading = document.getElementById("loading");
+    const errorBox = document.getElementById("errorBox");
 
-  // 🌍 URL fixa para o backend do Cloud Run (POC)
-  const API_URL = "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app";
+    // 🌐 URL fixa para o backend do Cloud Run
+    const API_URL = "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app/chat/";
 
-  chatForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const pergunta = inputPergunta.value.trim();
-    if (!pergunta) return;
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const pergunta = inputPergunta.value.trim();
+      if (!pergunta) return;
 
-    addMessage(pergunta, "user");
-    inputPergunta.value = "";
-    loading.style.display = "block";
+      errorBox.style.display = "none";
+      addMessage(pergunta, "user");
+      inputPergunta.value = "";
+      loading.style.display = "block";
 
-    try {
-      const response = await fetch(`${API_URL}/chat/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pergunta })
-      });
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ pergunta }),
+        });
 
-      if (!response.ok) {
-        addMessage(`❌ Erro: servidor retornou status ${response.status}`, "bot");
-        return;
+        if (!response.ok) {
+          throw new Error(`Servidor respondeu com status ${response.status}`);
+        }
+
+        const data = await response.json();
+        addMessage(data.resposta || "⚠️ Não foi possível obter resposta da IA.", "bot");
+      } catch (err) {
+        console.error(err);
+        errorBox.textContent = "❌ Não foi possível se conectar ao backend. Verifique se o serviço está ativo.";
+        errorBox.style.display = "block";
+      } finally {
+        loading.style.display = "none";
       }
+    });
 
-      const data = await response.json();
-      addMessage(data.resposta || "⚠️ Não foi possível obter resposta da IA.", "bot");
-
-    } catch (err) {
-      console.error(err);
-      addMessage("❌ Erro de conexão com o servidor. Verifique se o backend está ativo.", "bot");
-    } finally {
-      loading.style.display = "none";
+    function addMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.classList.add("message", sender);
+      msg.textContent = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
-  });
-
-  function addMessage(text, sender) {
-    const msg = document.createElement("div");
-    msg.classList.add("message", sender);
-    msg.textContent = text;
-    chatBox.appendChild(msg);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-</script>
-
+  </script>
 
 </body>
 </html>
