@@ -31,15 +31,15 @@ jobs:
       - name: Login no Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       # ==============================================================
       # 🐳 Build e Push da imagem Docker
       # ==============================================================
       - name: Build e Push da imagem Docker
         run: |
-          IMAGE_TAG="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}"
+          IMAGE_TAG="${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}"
           echo "📦 Construindo imagem: $IMAGE_TAG"
           
           # Build da imagem
@@ -72,7 +72,7 @@ jobs:
       # ==============================================================
       - name: Deploy no Cloud Run
         run: |
-          IMAGE_TAG="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}"
+          IMAGE_TAG="${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}"
 
           echo "🚀 Iniciando deploy no Cloud Run..."
           echo "📝 Serviço: ${{ env.SERVICE_NAME }}"
@@ -155,7 +155,7 @@ jobs:
               \"tipo_erro\": \"${TIPO_ERRO}\",
               \"stack_hash\": \"${STACK_HASH}\",
               \"service_url\": \"${SERVICE_URL}\",
-              \"image_tag\": \"${{ secrets.DOCKERHUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}\",
+              \"image_tag\": \"${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.SERVICE_NAME }}:${{ github.event.inputs.tag }}\",
               \"timestamp\": \"${TS}\"
             }" && echo "✅ Logs enviados com sucesso para Fluent Bit." || echo "❌ Falha ao enviar logs para Fluent Bit."
 
