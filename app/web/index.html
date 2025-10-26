@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Assistente de Sustentação IA</title>
-  <link rel="icon" type="image/png" href="/web/favicon.png">
   <style>
     /* ======== RESET & BASE ======== */
     * {
@@ -147,11 +146,11 @@
   <main>
     <div class="chat-box" id="chatBox">
       <div class="message bot">
-        👋 <strong>Olá!</strong> Eu sou o assistente de sustentação técnica.<br><br>
+        👋 Olá! Eu sou o assistente de sustentação técnica.<br><br>
         Faça uma pergunta — por exemplo:<br><br>
         <em>“Sou gestor e quero um resumo da saúde técnica dos sistemas.”</em><br>
-        <em>“Sou analista de sustentação e quero que mostre falhas na transmissão viagem.”</em><br>
-        <em>“Sou um dev e quero que mostre falhas no vida nova.”</em>
+        <em>“Sou analista de sustentação e quero ver falhas na transmissão viagem.”</em><br>
+        <em>“Sou um dev e quero saber falhas no Vida Nova.”</em>
       </div>
     </div>
 
@@ -164,66 +163,55 @@
   </main>
 
   <!-- ======== SCRIPT ======== -->
-  <script>
-    const chatBox = document.getElementById("chatBox");
-    const chatForm = document.getElementById("chatForm");
-    const inputPergunta = document.getElementById("inputPergunta");
-    const loading = document.getElementById("loading");
+ <script>
+  const chatBox = document.getElementById("chatBox");
+  const chatForm = document.getElementById("chatForm");
+  const inputPergunta = document.getElementById("inputPergunta");
+  const loading = document.getElementById("loading");
 
-    // ==============================================================
-    // 🌐 Detecta ambiente: local ou Cloud Run
-    // ==============================================================
-    const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
-    const API_URL = isLocal
-      ? "http://127.0.0.1:8000"
-      : "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app"; // URL pública do backend no Cloud Run
+  // 🌐 Detecta automaticamente o backend (mesmo domínio e porta)
+  const API_URL = window.location.origin;
 
-    // ==============================================================
-    // 💬 Evento de envio de mensagem
-    // ==============================================================
-    chatForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const pergunta = inputPergunta.value.trim();
-      if (!pergunta) return;
+  chatForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const pergunta = inputPergunta.value.trim();
+    if (!pergunta) return;
 
-      addMessage(pergunta, "user");
-      inputPergunta.value = "";
-      loading.style.display = "block";
+    addMessage(pergunta, "user");
+    inputPergunta.value = "";
+    loading.style.display = "block";
 
-      try {
-        const response = await fetch(`${API_URL}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pergunta })
-        });
+    try {
+      const response = await fetch(`${API_URL}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pergunta })
+      });
 
-        if (!response.ok) {
-          addMessage(`❌ Erro: servidor retornou status ${response.status}`, "bot");
-          loading.style.display = "none";
-          return;
-        }
-
-        const data = await response.json();
-        addMessage(data.resposta || "⚠️ Não foi possível obter resposta da IA.", "bot");
-
-      } catch (err) {
-        addMessage("❌ Erro de conexão com o servidor. Verifique se o backend está online.", "bot");
-      } finally {
-        loading.style.display = "none";
+      if (!response.ok) {
+        addMessage(`❌ Erro: servidor retornou status ${response.status}`, "bot");
+        return;
       }
-    });
 
-    // ==============================================================
-    // 📦 Função auxiliar para adicionar mensagens ao chat
-    // ==============================================================
-    function addMessage(text, sender) {
-      const msg = document.createElement("div");
-      msg.classList.add("message", sender);
-      msg.textContent = text;
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
+      const data = await response.json();
+      addMessage(data.resposta || "⚠️ Não foi possível obter resposta da IA.", "bot");
+
+    } catch (err) {
+      console.error(err);
+      addMessage("❌ Erro de conexão com o servidor. Verifique se o backend está ativo.", "bot");
+    } finally {
+      loading.style.display = "none";
     }
-  </script>
+  });
+
+  function addMessage(text, sender) {
+    const msg = document.createElement("div");
+    msg.classList.add("message", sender);
+    msg.textContent = text;
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+</script>
 
 </body>
 </html>

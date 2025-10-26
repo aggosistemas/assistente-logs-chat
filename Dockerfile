@@ -1,28 +1,33 @@
 # ==============================================================
 # 🐳 Dockerfile - Assistente de Sustentação IA (FastAPI + Frontend)
+# --------------------------------------------------------------
+# Backend (FastAPI) + Frontend (HTML estático) integrados
+# Deploy pronto para o Cloud Run.
 # ==============================================================
 
-# Etapa base
+# ===== Etapa base ==========================================================
 FROM python:3.13-slim AS base
 
-# Evita buffer de logs
-ENV PYTHONUNBUFFERED=1
+# Desabilita buffer de logs e bytecode para execução limpa
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
 
-# Cria diretório de app
+# Define diretório padrão da aplicação
 WORKDIR /app
 
-# Copia dependências e instala
+# ===== Instala dependências =================================================
+# Copia apenas o arquivo de dependências para otimizar cache
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia todo o projeto
+# ===== Copia o restante do código ===========================================
 COPY . .
 
-# Expõe a porta padrão do FastAPI
+# ===== Define variáveis de ambiente =========================================
+ENV PORT=8080
 EXPOSE 8080
 
-# Define variável para Cloud Run
-ENV PORT=8080
-
-# Comando padrão do contêiner
-CMD ["uvicorn", "main_chat:app", "--host", "0.0.0.0", "--port", "8080"]
+# ===== Comando de inicialização =============================================
+# Usa Uvicorn como servidor ASGI de produção (threaded e otimizado)
+CMD ["uvicorn", "app.main_chat:app", "--host", "0.0.0.0", "--port", "8080"]

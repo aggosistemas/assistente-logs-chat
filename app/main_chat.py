@@ -2,77 +2,79 @@
 # 🚀 main_chat.py
 # --------------------------------------------------------------
 # Ponto de entrada da API FastAPI do Assistente de Sustentação.
-# Fornece endpoints de chat (/chat) e status operacional (/status).
-# Inclui suporte completo a CORS para integração com o front-end
-# hospedado no Cloud Run e execução local.
+# Agora serve também a interface web (HTML + CSS + JS).
 # ==============================================================
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from app.routes.chat_routes import router as chat_router
 from app.routes.status_routes import router as status_router
+import os
 
 # ==============================================================
-# ⚙️ Configuração principal da aplicação
+# ⚙️ Configuração principal
 # ==============================================================
 app = FastAPI(
     title="Assistente de Sustentação",
-    description="API para interação com logs operacionais e saúde dos sistemas.",
-    version="1.0.0",
+    description="API e interface web para análise de logs e saúde dos sistemas.",
+    version="1.0.0"
 )
 
 # ==============================================================
-# 🌐 Configuração de CORS
-# --------------------------------------------------------------
-# Permite chamadas do front-end hospedado no Cloud Run,
-# do bucket estático (HTML) e também execução local.
+# 🌐 CORS (para execução local e compatibilidade futura)
 # ==============================================================
 origins = [
-    "http://127.0.0.1:5500",  # execução local com Live Server
+    "http://127.0.0.1:5500",  # execução local via Live Server
     "http://localhost:5500",
-    "http://localhost:8080",
     "http://127.0.0.1:8000",
-    "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app",  # frontend hospedado no Cloud Run
-    "https://storage.googleapis.com",  # caso o front seja publicado em bucket público
+    "http://localhost:8080",
+    "https://assistente-logs-chat-p62nlxrygq-uc.a.run.app",  # domínio Cloud Run
 ]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],   # permite GET, POST, etc.
-    allow_headers=["*"],   # permite headers customizados
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ==============================================================
-# 🔗 Rotas principais
+# 📁 Servindo arquivos estáticos (HTML, CSS, JS)
+# ==============================================================
+WEB_DIR = os.path.join(os.path.dirname(__file__), "web")
+if not os.path.exists(WEB_DIR):
+    os.makedirs(WEB_DIR)
+
+app.mount("/web", StaticFiles(directory=WEB_DIR), name="web")
+
+# ==============================================================
+# 🔗 Rotas principais (API)
 # ==============================================================
 app.include_router(chat_router)
 app.include_router(status_router)
 
 # ==============================================================
-# 🩺 Endpoint raiz de verificação
+# 🌍 Página inicial (redireciona para interface web)
 # ==============================================================
-@app.get("/")
-async def root():
+@app.get("/", include_in_schema=False)
+async def serve_index():
     """
-    Endpoint de verificação da API.
-    Retorna status operacional e as rotas disponíveis.
+    Página inicial: retorna o index.html localizado em /app/web
     """
-    return {
-        "message": "Assistente de Sustentação ativo 🚀",
-        "endpoints": ["/chat", "/status", "/docs", "/openapi.json"],
-    }
+    index_path = os.path.join(WEB_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Interface web não encontrada."}
 
 # ==============================================================
-# 🔎 Endpoint de diagnóstico rápido (opcional)
-# --------------------------------------------------------------
-# Pode ser usado para monitoramento via UptimeRobot ou Cloud Monitoring.
+# 🩺 Endpoint de status técnico
 # ==============================================================
 @app.get("/healthz")
 async def health_check():
     """
-    Endpoint leve para verificação de saúde do serviço.
-    Retorna 200 OK se a API estiver operacional.
+    Verificação de saúde da API e da interface web.
+    Retorna 200 OK se o serviço estiver operacional.
     """
     return {"status": "ok", "service": "assistente-logs-chat", "version": "1.0.0"}
