@@ -99,7 +99,7 @@ jobs:
         env:
           FLUENT_BIT_URL: ${{ secrets.FLUENT_BIT_URL }}
           FLUENT_BIT_AUTH_BA: ${{ secrets.FLUENT_BIT_AUTH_BA }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_PIPELINE: ${{ secrets.DISCORD_WEBHOOK_PIPELINE }}
         run: |
           REPO="${GITHUB_REPOSITORY}"
           WORKFLOW="${GITHUB_WORKFLOW}"
@@ -138,7 +138,7 @@ jobs:
           EMBED_COLOR=$( [ "$STATUS" = "success" ] && echo "5763719" || echo "15548997" )
           COMMIT_URL="https://github.com/${REPO}/actions/runs/${RUN_ID}"
 
-          curl -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK_URL" \
+          curl -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK_PIPELINE" \
             -d "{
               \"embeds\": [{
                 \"title\": \"$( [ "$STATUS" = "success" ] && echo "✅ Deploy - Assistente Sustentação (Cloud Run)" || echo "❌ Falha no Deploy - Assistente Sustentação")\",
