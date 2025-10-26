@@ -6,7 +6,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.utils.validation import is_prompt_valid  # ou validar_pergunta, conforme versão final
+from app.utils.validation import is_prompt_valid
 from app.services.openai_client import gerar_resposta
 
 router = APIRouter(prefix="/chat", tags=["Chat Assistente"])
@@ -18,16 +18,16 @@ class ChatRequest(BaseModel):
     pergunta: str
 
 # ==============================================================
-# 📤 Modelo de saída (opcional, melhora documentação Swagger)
+# 📤 Modelo de saída (melhora documentação Swagger)
 # ==============================================================
 class ChatResponse(BaseModel):
     pergunta: str
     resposta: str
 
 # ==============================================================
-# 🧠 Endpoint principal
+# 🧠 Endpoint principal - POST /chat
 # ==============================================================
-@router.post("/", response_model=ChatResponse)
+@router.post("", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     """
     Recebe uma pergunta e retorna uma resposta contextual do assistente técnico.
@@ -50,7 +50,25 @@ async def chat_endpoint(request: ChatRequest):
     print(f"💬 Pergunta recebida: {pergunta}")
 
     # 🧠 Geração de resposta via OpenAI
-    resposta = gerar_resposta(pergunta)
-    print(f"✅ Resposta gerada ({len(resposta)} caracteres).")
+    try:
+        resposta = gerar_resposta(pergunta)
+        print(f"✅ Resposta gerada ({len(resposta)} caracteres).")
+    except Exception as e:
+        print(f"❌ Erro ao gerar resposta: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao gerar resposta.")
 
     return {"pergunta": pergunta, "resposta": resposta}
+
+
+# ==============================================================
+# 🔎 GET auxiliar para diagnóstico - GET /chat
+# ==============================================================
+@router.get("")
+async def chat_info():
+    """
+    Endpoint auxiliar para teste rápido de disponibilidade.
+    """
+    return {
+        "message": "✅ Endpoint /chat ativo. Use POST para enviar perguntas.",
+        "example": {"pergunta": "Sou gestor e quero um resumo da saúde técnica dos sistemas."},
+    }
